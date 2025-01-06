@@ -1,0 +1,457 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+model User {
+  id                      String   @id @default(cuid())
+  username                String   @unique
+  image                   String   @default("/images/avt/1.jpg")
+  email                   String?  @unique
+  name                    String?
+  password                String
+  token                   String?
+  salt                    String
+  role                    UserRole @default(USER)
+  chipsAmount             Int      @default(0)
+  seamLessToken           String?  @db.Text @map(name: "seam_less_token") 
+
+  tables                  Table[]
+  players                 Player[]
+  banks                   Bank[]
+  loseHistories           LoseHistory[]
+  winMessages             WinMessages[]
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt @map(name: "updated_at")
+  removedAt DateTime? @updatedAt @map(name: "removed_at")
+
+  @@map(name: "users")
+}
+
+model Room {
+  id                      String      @id @default(cuid())
+  name                    String
+
+  createdAt               DateTime    @default(now()) @map(name: "created_at")
+  updatedAt               DateTime    @updatedAt @map(name: "updated_at")
+  removedAt               DateTime?   @updatedAt @map(name: "removed_at")
+
+  tables                  Table[]
+}
+
+model Table {
+  id                      String      @id @default(cuid())
+  name                    String
+  eventId                 String?     @map(name: "event_id")
+  event                   Event?      @relation(fields: [eventId], references: [id])
+
+  userId                  String      @map(name: "user_id")
+  user                    User        @relation(fields: [userId], references: [id])
+
+  maxPlayers              Int         @default(10) @map(name: "max_players")
+  minPlayers              Int         @default(2) @map(name: "min_players")
+
+  minBuyIn                Int         @map(name: "min_buy_in")
+  maxBuyIn                Int         @map(name: "max_buy_in")
+  ante                    Int         @default(0)
+
+  handOver                Boolean     @default(true) @map(name: "hand_over")
+  deleted                 Boolean     @default(false) @map(name: "on_deleted")
+  chatBanned              Boolean     @default(true) @map(name: "chat_banned")
+
+  players                 Player[]
+  messages                Message[]
+  matches                 Match[]
+  decks                   Deck[]
+  codeID                  String?     @map(name: "code_id")
+  codePassword            String?     @map(name: "code_password")
+  roomId                  String      @map(name: "room_id")
+  room                    Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  createdAt               DateTime    @default(now()) @map(name: "created_at")
+  updatedAt               DateTime    @updatedAt @map(name: "updated_at")
+  removedAt               DateTime?   @updatedAt @map(name: "removed_at")
+  
+  collectMoneyHistories   MoneyCollectionHistory[]
+
+  @@index([userId, roomId])
+  @@map(name: "tables")
+}
+
+model WinMessages {
+  id String @id @default(cuid())
+
+  matchId String @map(name: "match_id")
+  match   Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  userId String @map(name: "user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  content  String
+  handName String? @map(name: "hand_name")
+  amount   Int
+
+  bestHand   String? @map(name: "best_hand")
+  winnerHand String? @map(name: "winner_hand")
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+
+  @@map(name: "winner_messages")
+}
+
+model LoseHistory {
+  id String @id @default(cuid())
+
+  matchId String @map(name: "match_id")
+  match   Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  userId String @map(name: "user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  handName String? @map(name: "hand_name")
+  amount   Int
+
+  worstHand String? @map(name: "worst_hand")
+  loserHand String? @map(name: "loser_hand")
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+
+  @@map(name: "lose_histories")
+}
+
+enum CardRank {
+  A
+  TWO
+  THREE
+  FOUR
+  FIVE
+  SIX
+  SEVEN
+  EIGHT
+  NINE
+  TEN
+  J
+  Q
+  K
+}
+
+enum CardSuit {
+  HEARTS
+  DIAMONDS
+  CLUBS
+  SPADES
+}
+
+model Card {
+  id   String   @id @default(cuid())
+  rank CardRank
+  suit CardSuit
+
+  decks   Deck[]
+  matches Match[]
+
+  participantOne Participant[] @relation("CardOne")
+  participantTwo Participant[] @relation("CardTwo")
+
+  @@map(name: "cards")
+}
+
+model Player {
+  id String @id @default(cuid())
+
+  userId String @map(name: "user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  socketId      String? @map(name: "socket_id")
+  buyIn         Int     @default(0) @map(name: "buy_in")
+  stack         Int     @default(0)
+  previousStack Int     @default(0) @map(name: "previos_stack")
+
+  tableId String @map(name: "table_id")
+  table   Table  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  isTurn         Boolean @default(false) @map(name: "is_turn")
+  leaveNextMatch Boolean @default(false) @map(name: "leave_next_match")
+
+  messages     Message[]
+  participants Participant[]
+
+  smallBlindMatch Match[] @relation("SmallBlindPlayer")
+  bigBlindMatch   Match[] @relation("BigBlindPlayer")
+  buttonMatch     Match[] @relation("ButtonPlayer")
+
+  matches Match[]
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+
+  @@index([userId])
+  @@index([tableId])
+  @@map(name: "players")
+}
+
+model Message {
+  id String @id @default(cuid())
+
+  tableId String @map(name: "table_id")
+  table   Table  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  content         String
+  stickerImageSrc String? @map(name: "sticker_image_src")
+  playerId        String  @map(name: "player_id")
+  player          Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  deleted         Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+
+  @@index([playerId])
+  @@index([tableId])
+  @@map(name: "messages")
+}
+
+model Event {
+  id   String @id @default(cuid())
+  name String
+
+  prize  Int
+  min    Int
+  max    Int
+  status String
+
+  tables Table[]
+
+  start DateTime @default(now())
+  end   DateTime @default(now())
+
+  @@map(name: "events")
+}
+
+model Bank {
+  id String @id @default(cuid())
+
+  userId String @map(name: "user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  cardNumber     String
+  securityCode   String   @map(name: "security_code")
+  cardHolderName String   @map(name: "card_holder_name")
+  expiryDate     DateTime @map(name: "expiry_date")
+
+  bankCode   String? @map(name: "bank_code")
+  branch     String?
+  number1    String?
+  number2    String?
+  linkqrcode String?
+
+  recharges Recharge[]
+  withdraws Withdraw[]
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt @map(name: "updated_at")
+  removedAt DateTime? @updatedAt @map(name: "removed_at")
+
+  @@unique([userId, cardNumber])
+  @@index([userId])
+  @@map(name: "banks")
+}
+
+enum BankActionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Recharge {
+  id String @id @default(cuid())
+
+  bankId String           @map(name: "bank_id")
+  bank   Bank             @relation(fields: [bankId], references: [id])
+  amount Int
+  status BankActionStatus @default(PENDING)
+
+  number1 String?
+  number2 String?
+  branch  String?
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+
+  @@map(name: "recharges")
+}
+
+model Withdraw {
+  id String @id @default(cuid())
+
+  bankId String           @map(name: "bank_id")
+  bank   Bank             @relation(fields: [bankId], references: [id])
+  amount Int
+  status BankActionStatus @default(PENDING)
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+
+  @@map(name: "withdraws")
+}
+
+model Deck {
+  id String @id @default(cuid())
+
+  tableId String @map(name: "table_id")
+  table   Table  @relation(fields: [tableId], references: [id])
+
+  cards   Card[]
+  matches Match[]
+
+  @@map(name: "deck")
+}
+
+model Match {
+  id                      String        @id @default(cuid())
+  tableId                 String        @map(name: "table_id")
+  table                   Table         @relation(fields: [tableId], references: [id])
+  startTime               DateTime?     @map(name: "start_time")
+  endTime                 DateTime?     @map(name: "end_time")
+  numberPlayers           Int           @map(name: "number_players")
+  deckId                  String        @map(name: "deck_id")
+  deck                    Deck          @relation(fields: [deckId], references: [id])
+
+  pot                     Int           @default(0)
+  mainPot                 Int           @default(0) @map(name: "main_pot")
+  sidePot                 String        @default("[]") @map(name: "side_pot")
+  callAmount              Int           @default(0) @map(name: "call_amount")
+
+  minBet                  Int           @default(0) @map(name: "min_bet")
+  minRaise                Int           @default(0) @map(name: "min_raise")
+
+  isPreFlop               Boolean       @default(true) @map(name: "is_pre_flop")
+  isFlop                  Boolean       @default(false) @map(name: "is_flop")
+  isTurn                  Boolean       @default(false) @map(name: "is_turn")
+  isRiver                 Boolean       @default(false) @map(name: "is_river")
+  isShowdown              Boolean       @default(false) @map(name: "is_showdown")
+  isAllAllIn              Boolean       @default(false) @map(name: "is_all_all_in")
+
+  buttonId                String?       @map(name: "button_id")
+  button                  Player?       @relation("ButtonPlayer", fields: [buttonId], references: [id])
+
+  smallBlindId            String?       @map(name: "small_blind_id")
+  smallBlind              Player?       @relation("SmallBlindPlayer", fields: [smallBlindId], references: [id])
+
+  bigBlindId              String?       @map(name: "big_blind_id")
+  bigBlind                Player?       @relation("BigBlindPlayer", fields: [bigBlindId], references: [id])
+
+  board                   Card[]
+  winners                 Player[]
+  participants            Participant[]
+  sidePots                SidePot[]
+  winMessages             WinMessages[]
+  loseHistories           LoseHistory[]
+
+  createdAt               DateTime      @default(now()) @map(name: "created_at")
+
+  @@map(name: "match")
+}
+
+model Participant {
+  id       String @id @default(cuid())
+  matchId  String @map(name: "match_id")
+  match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  playerId String @map(name: "player_id")
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  cardOneId String? @map(name: "card_one_id")
+  cardOne   Card?   @relation("CardOne", fields: [cardOneId], references: [id])
+  cardTwoId String? @map(name: "card_two_id")
+  cardTwo   Card?   @relation("CardTwo", fields: [cardTwoId], references: [id])
+
+  bet       Int     @default(0)
+  totalBet  Int     @default(0) @map(name: "total_bet")
+  isChecked Boolean @default(false) @map(name: "is_checked")
+  isFolded  Boolean @default(true) @map(name: "is_folded")
+  isAllIn   Boolean @default(false) @map(name: "is_all_in")
+
+  lastAction String @default("") @map(name: "last_action")
+
+  sidePots SidePot[]
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+
+  @@unique([playerId, matchId])
+  @@map(name: "participant")
+}
+
+model SidePot {
+  id String @id @default(cuid())
+
+  matchId String @map(name: "match_id")
+  match   Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  amount Int @default(0)
+
+  participants Participant[]
+
+  createdAt DateTime @default(now()) @map(name: "created_at")
+
+  @@map(name: "side_pots")
+}
+
+model ParticipantRaiseHistory {
+  id            String    @id @default(cuid())
+  tableName     String    @map(name: "table_name")
+  createdAt     DateTime  @default(now()) @map(name: "created_at")
+  raiseType     String
+  username      String
+  totalBet      BigInt
+  title         String?
+
+  @@map(name: "participant_raise_history")
+}
+
+model SidePotHistory {
+  id              String    @id @default(cuid())
+  title           String
+  createdAt       DateTime  @default(now()) @map(name: "created_at")
+  sidePotDetail   Json      @map(name: "side_pot_detail")
+  mainPot         BigInt?   @map(name: "main_pot")
+
+  @@map(name: "side_pot_history")
+}
+
+
+enum TableStatus {
+  active
+  unactive
+}
+
+model MoneyCollectionHistory {
+  id                    String        @id @default(cuid())
+
+  amount                BigInt
+
+  tableId               String        @map(name: "table_id")
+  table                 Table         @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  createdAt             DateTime      @default(now()) @map(name: "created_at")
+  tableStatus           TableStatus   @map(name: "status")
+
+  @@map(name: "money_collection_history")
+}
+
+model SettingParameters {
+  id                String       @id @default(cuid())
+  serviceFeeRate    Decimal      @map(name: "service_fee_rate")
+
+  @@map(name: "setting_parameters")
+}

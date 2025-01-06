@@ -1,0 +1,67 @@
+{
+  "name": "poker-backend",
+  "module": "index.ts",
+  "prisma": {
+    "schema": "src/prisma/schema.prisma"
+  },
+  "scripts": {
+    "dev": "ts-node-dev src/index.ts",
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "serve": "node dist/index.js",
+    "prettier": "prettier --check \"src/**/(*.ts|*.css|*.scss)\"",
+    "prettier:fix": "prettier --write \"src/**/(*.ts|*.css|*.scss)\"",
+    "db:seed": "ts-node ./src/scripts/seed.ts",
+    "db:solver": "ts-node ./src/scripts/solver.ts",
+    "db:test": "ts-node ./src/scripts/test.ts",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:studio": "npx prisma studio"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.5",
+    "@types/bun": "latest",
+    "@types/compression": "^1.7.5",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/lodash": "^4.17.0",
+    "prettier": "^3.2.5",
+    "ts-node-dev": "^2.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "5.11.0",
+    "@types/hpp": "^0.2.6",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.11.30",
+    "@types/socket.io": "^3.0.2",
+    "@xpressit/winning-poker-hand-rank": "^0.2.1",
+    "async-mutex": "^0.5.0",
+    "axios": "^1.7.3",
+    "body-parser": "^1.20.2",
+    "compression": "^1.7.4",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "express-validator": "^7.0.1",
+    "hpp": "^0.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "pokersolver": "^2.1.4",
+    "prisma": "^5.11.0",
+    "socket.io": "3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0",
+    "xss-clean": "^0.1.4"
+  },
+  "description": "To install dependencies:",
+  "version": "1.0.0",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
