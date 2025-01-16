@@ -176,9 +176,6 @@ const init = ({ socket, io }: IInIt) => {
   socket.on(PokerActions.CALL, async ({ tableId, participantId }) => {
     const table = await getTableById(tableId)
 
-    console.log('participantId', participantId)
-
-
     if (!table) return
 
     const data = await handleParticipantCall(participantId)
@@ -292,7 +289,7 @@ const init = ({ socket, io }: IInIt) => {
 
     broadcastToTable(
       table,
-      `${player.user?.username} зүүн, сокет ID алдагдсан`,
+      `${player.user?.name} left, socket connection lost`,
       'error'
     )
 
@@ -411,6 +408,10 @@ const init = ({ socket, io }: IInIt) => {
     participant: Participant
   ) => {
     const playerId = await changeTurn(table, participant)
+    
+      console.log(`[TURN] Changing turn for table ID: ${table.id}`);
+  console.log(`[TURN] Current participant ID: ${participant.id}`);
+  console.log(`[TURN] Next player ID: ${playerId}`);
 
     const currentMatch = await db.match.findUnique({
       where: {
@@ -448,6 +449,9 @@ const init = ({ socket, io }: IInIt) => {
     })
 
     const newPlayers = currentMatch?.table?.players || []
+    
+    console.log(`[TURN] Match ID: ${currentMatch?.id}`);
+    console.log(`[TURN] Table Players: ${currentMatch?.table?.players.map(p => p.user?.name).join(', ')}`);
 
     for (let i = 0; i < newPlayers.length; i++) {
       let socketId = newPlayers[i].socketId as string

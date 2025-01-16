@@ -30,6 +30,7 @@ model User {
   role                    UserRole @default(USER)
   chipsAmount             Int      @default(0)
   seamLessToken           String?  @db.Text @map(name: "seam_less_token") 
+  deviceId                String?  @db.Text @map(name: "device_id")
 
   tables                  Table[]
   players                 Player[]
@@ -53,6 +54,8 @@ model Room {
   removedAt               DateTime?   @updatedAt @map(name: "removed_at")
 
   tables                  Table[]
+  
+  @@map(name: "room")
 }
 
 model Table {

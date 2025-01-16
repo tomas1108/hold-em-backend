@@ -32,6 +32,7 @@ export enum PokerActions {
   SITTING_IN = 'SITTING_IN',
   DISCONNECTED = 'DISCONNECTED',
   REBOUGHT = 'REBOUGHT',
+  UPDATED_DEVICE_ID = 'UPDATED_DEVICE_ID',
 }
 
 export enum RaiseType {

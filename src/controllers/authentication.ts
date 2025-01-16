@@ -5,10 +5,11 @@ import { authentication, random } from '../helpers'
 import responseHandler from '../handlers/response-handler'
 import { db } from '../lib/db'
 import axios from 'axios'
+import { PokerActions } from '../pokergame/actions'
 
 const login = async (req: express.Request, res: express.Response) => {
   try {
-    const { username, password } = req.body
+    const { username, password, deviceId } = req.body
     console.info('[AUTH] Login processing...')
 
     if (!username || !password) {
@@ -23,37 +24,37 @@ const login = async (req: express.Request, res: express.Response) => {
       return responseHandler.badrequest(res, 'User does not exist')
     }
 
+    const isInGameRoom = await db.player.findFirst({
+      where: {
+        user: {
+          username
+        }
+      }
+    })
+
+    if (isInGameRoom) {
+        return responseHandler.badrequest(res, 'User is in game room')
+    }
 
     const expectedHash = authentication(user.salt as string, password)
 
     if (user.password != expectedHash) {
-      console.info('Password not match')
-      return responseHandler.badrequest(res, 'Password not match')
+        console.info('Password not match')
+        return responseHandler.badrequest(res, 'Password not match')
     }
-
-    // if (user.token) {
-    //   return responseHandler.badrequest(
-    //     res, 
-    //     "Your account is being used in another device. Please try again later!"
-    //   )
-    // }
-    
 
     const salt = random()
     const updateToken = authentication(salt, user.id.toString())
-    
-    console.info('[AUTH] Create updated token....')
 
     const updatedUser = await updateUserById(user.id, {
-      token: updateToken,
+        token: updateToken,
+        deviceId,
+        removedAt: null
     })
-
-    console.info('[AUTH] Create updated user: ', updatedUser ? '{Updated}' : '{Null}')
     
     // // Sign in in Seamless API
     const baseURL =  process.env.SEAMLESS_API_URL;
     const { data } = await axios.post(`${baseURL}/auth/login`, { username, password });
-    console.log('data: ', data)
 
     if (data?.access_token) {
       await db.user.update({
@@ -61,10 +62,12 @@ const login = async (req: express.Request, res: express.Response) => {
           username
         },
         data: {
-          seamLessToken: data?.access_token
+          seamLessToken: data?.access_token,
         }
       })
     }
+    
+    res?.app?.get('io')?.emit(PokerActions.UPDATED_DEVICE_ID, { deviceId: user.deviceId })
 
     responseHandler.created(res, {
       user: updatedUser,
@@ -183,7 +186,8 @@ const logout = async (req: express.Request, res: express.Response) => {
       },
       data: {
         token: null,
-        seamLessToken: null
+        seamLessToken: null,
+        deviceId: null
       }
     })
 

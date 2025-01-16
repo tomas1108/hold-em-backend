@@ -1,4 +1,6 @@
 import express from 'express'
+// npm i --save-dev @types/swagger-ui-express
+import swaggerUi from 'swagger-ui-express';
 
 import authentication from './authentication'
 import users from './users'
@@ -18,9 +20,13 @@ import tablesAdmin from './admin/tables'
 import settings from './settings'
 import rooms from './rooms'
 
+import { swaggerDocs } from '../configs/swagger'
+
 const router = express.Router()
 
 export default (): express.Router => {
+  router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
   // api routes for fronend
   router.use('/api/auth', authentication())
   router.use('/api/users', users())
